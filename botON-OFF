@@ -3,8 +3,10 @@
 if [ $1 = "on" ]; then
   ADDR=$(curl --silent --show-error http://127.0.0.1:4040/api/tunnels | sed -nE 's/.*public_url":"https:..([^"]*).*/\1/p')
   curl -F "url=https://"${ADDR} https://api.telegram.org/bot7161499158:AAE3lf6sy_ViwlBJ_Axuw8i2cYssAwFbBIY/setWebhook
-  echo "Bot Webhook Set"
+  echo ""
+  echo "Bot Webhook Set @ ${ADDR}"
 else
   curl https://api.telegram.org/bot7161499158:AAE3lf6sy_ViwlBJ_Axuw8i2cYssAwFbBIY/deleteWebhook
+  echo ""
   echo "Bot Webhook Deleted"
 fi
