@@ -20,6 +20,7 @@ func main() {
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(handler),
+		bot.WithDebug(),
 	}
 
 	b, err := bot.New(config.BotToken, opts...)
@@ -30,7 +31,7 @@ func main() {
 	}
 
 	b.SetWebhook(ctx, &bot.SetWebhookParams{
-		URL: "/https://93fb-2804-d55-8603-c700-8418-afa0-2687-d854.ngrok-free.app/webhook",
+		URL: config.BotUrl,
 	})
 
 	go func() {
@@ -39,8 +40,6 @@ func main() {
 
 	// Use StartWebhook instead of Start
 	b.StartWebhook(ctx)
-
-	log.Println("BomBot started...")
 
 	// call methods.DeleteWebhook if needed
 }

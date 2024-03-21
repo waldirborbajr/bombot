@@ -1,4 +1,5 @@
 include .env
+include .boturl
 export
 
 ARTIFACT_NAME=bombot
