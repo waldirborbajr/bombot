@@ -12,10 +12,10 @@ tmux -u new-window -t $SESSION_NAME:1 -n "hot"
 tmux send-keys -t $SESSION_NAME:1 'nvim main.go' C-m
 
 tmux -u new-window -t $SESSION_NAME:2 -n "ngrok"
-tmux send-keys -t $SESSION_NAME:2 'ngrok http 9090' C-m
+tmux send-keys -t $SESSION_NAME:2 'ngrok http 2000' C-m
 
 tmux -u new-window -t $SESSION_NAME:3 -n "start bot"
-tmux send-keys -t $SESSION_NAME:3 'sleep 5 && ./botON-OFF on' C-m
+tmux send-keys -t $SESSION_NAME:3 'sleep 2 && ./botON-OFF on' C-m
 
 tmux -u new-window -t $SESSION_NAME:4 -n "Makefile run"
 tmux send-keys -t $SESSION_NAME:4 'sleep 5 && make run' C-m
