@@ -136,19 +136,23 @@ func main() {
 		},
 	})
 
-	// go func() {
-	err = http.ListenAndServe(":2000", b.WebhookHandler())
-	if err != nil {
-		log.Fatalf("Error Listening server: %v", err)
-	}
-	// }()
+	go func() {
+		err = http.ListenAndServe(":2000", b.WebhookHandler())
+		if err != nil {
+			log.Fatalf("Error Listening server: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
 
 	log.Println("BomBot started")
 
 	// call methods.DeleteWebhook if needed
-	_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
-	if err != nil {
-		log.Printf("Error on DeleteWebhook: %v", err)
-		return
-	}
+	defer func() {
+		_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
+		if err != nil {
+			log.Printf("Error on DeleteWebhook: %v", err)
+			return
+		}
+	}()
 }
