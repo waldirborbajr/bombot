@@ -136,7 +136,12 @@ func main() {
 		},
 	})
 
-	http.ListenAndServe(":2000", b.WebhookHandler())
+	// go func() {
+	err = http.ListenAndServe(":2000", b.WebhookHandler())
+	if err != nil {
+		log.Fatalf("Error Listening server: %v", err)
+	}
+	// }()
 
 	log.Println("BomBot started")
 
