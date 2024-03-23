@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -19,9 +18,16 @@ import (
 )
 
 var (
-	db   *database.Database
-	err  error
-	help string
+	db     *database.Database
+	err    error
+	help   string
+	logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Caller().
+		Int("pid", os.Getpid()).
+		Logger()
 )
 
 var (
@@ -31,23 +37,6 @@ var (
 )
 
 func main() {
-	buildInfo, _ := debug.ReadBuildInfo()
-
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Caller().
-		Int("pid", os.Getpid()).
-		Str("go_version", buildInfo.GoVersion).
-		Logger()
-
-	// logger := zerolog.New(os.Stdout).
-	// 	Level(zerolog.TraceLevel).
-	// 	With().
-	// 	Timestamp().
-	// 	Logger()
-
 	db, err = database.New()
 	if err != nil {
 		logger.Error().Msgf("Error creating database: %v", err)
