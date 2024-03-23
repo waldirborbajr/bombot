@@ -23,6 +23,8 @@ run: ## 󰜎 Build development binaries for Linux
 clean: ## ♻️  Clean up
 	@rm -rf bin
 	@rm $(GOBIN)/$(ARTIFACT_NAME)
+
+cache: ## ♻️  Clean up
 	go clean -modcache
 	go clean --cache
 

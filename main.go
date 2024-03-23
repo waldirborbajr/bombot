@@ -6,15 +6,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/rs/zerolog"
 	"github.com/waldirborbajr/bombot/internal/config"
 	"github.com/waldirborbajr/bombot/internal/database"
 
 	openai "github.com/sashabaranov/go-openai"
-
-	"github.com/rs/zerolog"
 )
 
 var (
@@ -30,23 +31,34 @@ var (
 )
 
 func main() {
-	logger := zerolog.New(os.Stdout).
+	buildInfo, _ := debug.ReadBuildInfo()
+
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
+		Caller().
+		Int("pid", os.Getpid()).
+		Str("go_version", buildInfo.GoVersion).
 		Logger()
+
+	// logger := zerolog.New(os.Stdout).
+	// 	Level(zerolog.TraceLevel).
+	// 	With().
+	// 	Timestamp().
+	// 	Logger()
 
 	db, err = database.New()
 	if err != nil {
-		logger.WithLevel(zerolog.FatalLevel).Msg("Error creating database:")
+		logger.Error().Msgf("Error creating database: %v", err)
 	}
 
 	helpAux, err := os.ReadFile("help.md")
 	if err != nil {
 		if !os.IsNotExist(err) {
-			logger.WithLevel(zerolog.FatalLevel).Msg("Error reading help.md: ")
+			logger.Error().Msgf("Error reading help.md: %v", err)
 		}
-		logger.WithLevel(zerolog.FatalLevel).Msg("help.md not found")
+		logger.Error().Msgf("help.md not found: %v", err)
 	}
 	help = string(helpAux)
 
@@ -68,21 +80,18 @@ func main() {
 
 	telegramBotToken := config.BotToken
 	if telegramBotToken == "" {
-		logger.WithLevel(zerolog.FatalLevel).
-			Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
+		logger.Error().Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
 		return
 	}
 
 	b, err := bot.New(telegramBotToken, opts...)
 	if nil != err {
-		logger.WithLevel(zerolog.FatalLevel).
-			Msg("Error creating bot: ")
+		logger.Error().Msgf("Error creating bot: %v", err)
 	}
 
 	webHookUrl := config.BotUrl
 	if webHookUrl == "" {
-		logger.WithLevel(zerolog.FatalLevel).
-			Msg("webHook URL environment variable is not set")
+		logger.Error().Msgf("webHook URL environment variable is not set: %v", err)
 		return
 	}
 
@@ -90,8 +99,7 @@ func main() {
 		URL: webHookUrl,
 	})
 	if err != nil {
-		logger.WithLevel(zerolog.FatalLevel).
-			Msg("Error on SetWebhook: ")
+		logger.Error().Msgf("Error on SetWebhook: %v", err)
 		return
 	}
 
@@ -102,8 +110,7 @@ func main() {
 	go func() {
 		err = http.ListenAndServe(":2000", b.WebhookHandler())
 		if err != nil {
-			logger.WithLevel(zerolog.FatalLevel).
-				Msg("Error Listening server: ")
+			logger.Error().Msgf("Error Listening server: %v", err)
 		}
 	}()
 
@@ -113,8 +120,7 @@ func main() {
 	defer func() {
 		_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
 		if err != nil {
-			logger.WithLevel(zerolog.FatalLevel).
-				Msg("Error on DeleteWebhook: ")
+			logger.Error().Msgf("Error on DeleteWebhook: %v", err)
 			return
 		}
 	}()
@@ -122,8 +128,7 @@ func main() {
 	// <-ctx.Done()
 	select {
 	case <-ctx.Done():
-		logger.WithLevel(zerolog.FatalLevel).
-			Msg("BomBot is shutting down...")
+		logger.Info().Msg("BomBot is shutting down...")
 	}
 }
 
@@ -132,11 +137,6 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.ChannelPost == nil {
 		return
 	}
-	// log.Printf(
-	// 	"[default_handler] got message from channel: %d %s",
-	// 	update.ChannelPost.ID,
-	// 	update.ChannelPost.Text,
-	// )
 
 	// Block to check for command
 	switch update.ChannelPost.Text {
