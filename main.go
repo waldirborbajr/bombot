@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -140,122 +139,18 @@ func main() {
 
 // handler is a default handler that simply sends a message to the chat.
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if update.Message == nil ||
-		update.Message.Text == "" ||
-		update.Message.From == nil {
+	if update.ChannelPost == nil {
 		return
 	}
 
 	// Block to check for command
 	switch {
-	case len(update.Message.Entities) > 0:
-		log.Printf("ENTITY: %v", update.Message.Entities[0].Type)
-		log.Printf("ENTITY LEN: %v", len(update.Message.Entities))
-		switch update.Message.Entities[0].Type == "bot_command" {
-		case strings.HasPrefix(update.Message.Text, "/start"):
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "Type a number bertweem 1..5",
-			})
-			chatMode[update.Message.Chat.ID] = "start"
-			return
-		case strings.HasPrefix(update.Message.Text, "/explain"):
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "What do you want me to explain?",
-			})
-			chatMode[update.Message.Chat.ID] = "explain"
-			return
-		case strings.HasPrefix(update.Message.Text, "/help"):
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ParseMode: "Markdown",
-				ChatID:    update.Message.Chat.ID,
-				Text:      help,
-			})
-			return
-		case strings.HasPrefix(update.Message.Text, "/image"):
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "What do you want me to generate?",
-			})
-			chatMode[update.Message.Chat.ID] = "image"
-			return
-		default:
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "Unknown command. Use /help to get help.",
-			})
-			return
-		}
-	}
-
-	// Block to check for the Finite State Machine
-	log.Println(" CHAT MODE: ", chatMode[update.Message.Chat.ID])
-	switch chatMode[update.Message.Chat.ID] {
-	case "start":
-		number, err := strconv.Atoi(update.Message.Text)
-		if err != nil {
-			log.Println("Error converting to number")
-			return
-		}
-
-		if number > 5 {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "I told you to type a number bertweem 1..5",
-			})
-			return
-		} else {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "Now type a number between 2..4",
-			})
-			chatMode[update.Message.Chat.ID] = "level1"
-			return
-		}
-	case "level1":
-		number, err := strconv.Atoi(update.Message.Text)
-		if err != nil {
-			log.Println("Error converting to number")
-			return
-		}
-
-		if number > 5 {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "I told you to type a number bertweem 2..4",
-			})
-			return
-		} else {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "Now type the number 3",
-			})
-			chatMode[update.Message.Chat.ID] = "level2"
-			return
-		}
-	case "level2":
-		number, err := strconv.Atoi(update.Message.Text)
-		if err != nil {
-			log.Println("Error converting to number")
-			return
-		}
-
-		if number == 3 {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "🎉 You Win 🏆",
-			})
-			chatMode[update.Message.Chat.ID] = "fini"
-			return
-		} else {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "Now type the number 3",
-			})
-			chatMode[update.Message.Chat.ID] = "level2"
-			return
-		}
+	case update.ChannelPost.Text == "/id":
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.ChannelPost.Chat.ID,
+			Text:   fmt.Sprintf("%d", update.ChannelPost.Chat.ID),
+		})
+		return
 	}
 
 	// msg, _ := json.Marshal(update)
