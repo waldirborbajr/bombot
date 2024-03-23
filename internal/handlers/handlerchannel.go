@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/waldirborbajr/bombot/internal/botlog"
+	"github.com/rs/zerolog/log"
 )
 
 func help() string {
@@ -31,9 +31,7 @@ func help() string {
 
 // handler is a default handler that simply sends a message to the chat.
 func HandlerChannel(ctx context.Context, b *bot.Bot, update *models.Update) {
-	logger := botlog.BotLog()
-
-	logger.Info().Msg("HandlerChannel")
+	log.Info().Msg("HandlerChannel")
 
 	if update.ChannelPost == nil {
 		return

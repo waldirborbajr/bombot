@@ -8,11 +8,10 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/rs/zerolog/log"
-	"github.com/waldirborbajr/bombot/internal/botlog"
 	"github.com/waldirborbajr/bombot/internal/config"
 	"github.com/waldirborbajr/bombot/internal/database"
-	"github.com/waldirborbajr/bombot/internal/fms"
 	"github.com/waldirborbajr/bombot/internal/handlers"
+	"github.com/waldirborbajr/bombot/internal/menu"
 
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -21,7 +20,6 @@ var (
 	db       *database.Database
 	err      error
 	BOT_FLAG string
-	logger   = botlog.BotLog()
 )
 
 var (
@@ -37,7 +35,7 @@ func main() {
 
 	db, err = database.New()
 	if err != nil {
-		logger.Error().Msgf("Error creating database: %v", err)
+		log.Error().Msgf("Error creating database: %v", err)
 	}
 
 	// --------------------------------
@@ -64,22 +62,27 @@ func main() {
 			bot.WithDefaultHandler(handlers.HandlerChannel),
 			bot.WithDebug(),
 		}
+	case "group":
+		opts = []bot.Option{
+			bot.WithDefaultHandler(handlers.HandlerGroup),
+			bot.WithDebug(),
+		}
 	}
 
 	telegramBotToken := config.BotToken
 	if telegramBotToken == "" {
-		logger.Error().Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
+		log.Error().Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
 		return
 	}
 
 	b, err := bot.New(telegramBotToken, opts...)
 	if nil != err {
-		logger.Error().Msgf("Error creating bot: %v", err)
+		log.Error().Msgf("Error creating bot: %v", err)
 	}
 
 	webHookUrl := config.BotUrl
 	if webHookUrl == "" {
-		logger.Error().Msgf("webHook URL environment variable is not set: %v", err)
+		log.Error().Msgf("webHook URL environment variable is not set: %v", err)
 		return
 	}
 
@@ -87,7 +90,7 @@ func main() {
 		URL: webHookUrl,
 	})
 	if err != nil {
-		logger.Error().Msgf("Error on SetWebhook: %v", err)
+		log.Error().Msgf("Error on SetWebhook: %v", err)
 		return
 	}
 
@@ -97,15 +100,17 @@ func main() {
 
 	switch BOT_FLAG {
 	case "fms":
-		fms.MenuCommandsFMS(ctx, b)
+		menu.MenuCommandsFMS(ctx, b)
 	case "channel":
-		fms.MenuCommandsChannel(ctx, b)
+		menu.MenuCommandsChannel(ctx, b)
+	case "group":
+		menu.MenuCommandsGroup(ctx, b)
 	}
 
 	go func() {
 		err = http.ListenAndServe(":2000", b.WebhookHandler())
 		if err != nil {
-			logger.Error().Msgf("Error Listening server: %v", err)
+			log.Error().Msgf("Error Listening server: %v", err)
 		}
 	}()
 
@@ -113,7 +118,7 @@ func main() {
 	defer func() {
 		_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
 		if err != nil {
-			logger.Error().Msgf("Error on DeleteWebhook: %v", err)
+			log.Error().Msgf("Error on DeleteWebhook: %v", err)
 			return
 		}
 	}()
@@ -121,6 +126,6 @@ func main() {
 	// <-ctx.Done()
 	select {
 	case <-ctx.Done():
-		logger.Info().Msg("BomBot is shutting down...")
+		log.Info().Msg("BomBot is shutting down...")
 	}
 }
