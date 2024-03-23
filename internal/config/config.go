@@ -6,4 +6,5 @@ import "os"
 var (
 	BotToken = os.Getenv("TOKEN")
 	BotUrl   = os.Getenv("BOT_URL")
+	BOT_FLAG = os.Getenv("BOT_FLAG")
 )
