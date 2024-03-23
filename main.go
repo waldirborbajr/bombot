@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 
 	"github.com/go-telegram/bot"
@@ -149,15 +150,19 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	log.Printf("ENTITY: %v", update.Message.Entities[0].Type)
-	log.Printf("ENTITY LEN: %v", len(update.Message.Entities))
-
 	// Processing commands
 	switch {
 	case len(update.Message.Entities) > 0:
+		log.Printf("ENTITY: %v", update.Message.Entities[0].Type)
+		log.Printf("ENTITY LEN: %v", len(update.Message.Entities))
 		switch update.Message.Entities[0].Type == "bot_command" {
 		case strings.HasPrefix(update.Message.Text, "/start"):
-			state = "START"
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "Type a number bertweem 1..5",
+			})
+			chatMode[update.Message.Chat.ID] = "start"
+			return
 		case strings.HasPrefix(update.Message.Text, "/explain"):
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
@@ -189,31 +194,94 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 
 	// FMS
+	log.Println(" CHAT MODE: ", chatMode[update.Message.Chat.ID])
+
+	switch chatMode[update.Message.Chat.ID] {
+	case "start":
+		number, err := strconv.Atoi(update.Message.Text)
+		if err != nil {
+			log.Println("Error converting to number")
+			return
+		}
+
+		if number > 5 {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "I told you to type a number bertweem 1..5",
+			})
+			return
+		} else {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "Now type a number between 2..4",
+			})
+			chatMode[update.Message.Chat.ID] = "level1"
+			return
+		}
+	case "level1":
+		number, err := strconv.Atoi(update.Message.Text)
+		if err != nil {
+			log.Println("Error converting to number")
+			return
+		}
+
+		if number > 5 {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "I told you to type a number bertweem 2..4",
+			})
+			return
+		} else {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "Now type the number 3",
+			})
+			chatMode[update.Message.Chat.ID] = "level2"
+			return
+		}
+	case "level2":
+		number, err := strconv.Atoi(update.Message.Text)
+		if err != nil {
+			log.Println("Error converting to number")
+			return
+		}
+
+		if number == 3 {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "You Win 🏆",
+			})
+			chatMode[update.Message.Chat.ID] = "fini"
+			return
+		} else {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "Now type the number 3",
+			})
+			chatMode[update.Message.Chat.ID] = "level2"
+			return
+		}
+	}
+
 	// switch state {
 	// case "START":
-	// 	b.SendMessage(ctx, &bot.SendMessageParams{
-	// 		ChatID: update.Message.Chat.ID,
-	// 		Text:   "Type a number bertweem 1..5",
-	// 	})
-	// 	return
+	// 	if len(update.Message.Entities) > 0 {
+	// 		number, err := strconv.Atoi(update.Message.Text)
+	// 		if err != nil {
+	// 			log.Println("Error converting to number")
+	// 			return
+	// 		}
+	//
+	// 		if number > 5 {
+	// 			b.SendMessage(ctx, &bot.SendMessageParams{
+	// 				ChatID: update.Message.Chat.ID,
+	// 				Text:   "I told you to type a number bertweem 1..5",
+	// 			})
+	// 			return
+	// 		}
+	// 	}
 	// default:
 	// 	state = "START"
-	// }
-
-	// if len(update.Message.Entities) > 0 {
-	// 	number, err := strconv.Atoi(update.Message.Text)
-	// 	if err != nil {
-	// 		log.Println("Error converting to number")
-	// 		return
-	// 	}
-	//
-	// 	if number > 5 {
-	// 		b.SendMessage(ctx, &bot.SendMessageParams{
-	// 			ChatID: update.Message.Chat.ID,
-	// 			Text:   "I told you to type a number bertweem 1..5",
-	// 		})
-	// 		return
-	// 	}
 	// }
 
 	// msg, _ := json.Marshal(update)
