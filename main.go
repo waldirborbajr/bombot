@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,9 +17,10 @@ import (
 )
 
 var (
-	db   *database.Database
-	err  error
-	help string
+	db    *database.Database
+	err   error
+	help  string
+	state string
 )
 
 var (
@@ -33,6 +32,9 @@ var (
 func main() {
 	// initialize log config
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// settting initial state
+	state = "START"
 
 	db, err = database.New()
 	if err != nil {
@@ -96,6 +98,14 @@ func main() {
 	b.SetMyCommands(ctx, &bot.SetMyCommandsParams{
 		Commands: []models.BotCommand{
 			{
+				Command:     "start",
+				Description: "Explain the following text",
+			},
+			{
+				Command:     "help",
+				Description: "Cry for help",
+			},
+			{
 				Command:     "explain",
 				Description: "Explain the following text",
 			},
@@ -139,146 +149,214 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	msg, _ := json.Marshal(update)
-	log.Default().Println(string(msg))
+	log.Printf("ENTITY: %v", update.Message.Entities[0].Type)
+	log.Printf("ENTITY LEN: %v", len(update.Message.Entities))
 
-	if len(update.Message.Entities) > 0 {
-		if update.Message.Entities[0].Type == "bot_command" &&
-			strings.HasPrefix(update.Message.Text, "/explain") {
+	// Processing commands
+	switch {
+	case len(update.Message.Entities) > 0:
+		switch update.Message.Entities[0].Type == "bot_command" {
+		case strings.HasPrefix(update.Message.Text, "/start"):
+			state = "START"
+		case strings.HasPrefix(update.Message.Text, "/explain"):
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
 				Text:   "What do you want me to explain?",
 			})
 			chatMode[update.Message.Chat.ID] = "explain"
 			return
-		}
-		if update.Message.Entities[0].Type == "bot_command" &&
-			strings.HasPrefix(update.Message.Text, "/translate") {
-			lang := ""
-			if len(
-				update.Message.Text,
-			) > update.Message.Entities[0].Offset+update.Message.Entities[0].Length {
-				lang = update.Message.Text[update.Message.Entities[0].Offset+update.Message.Entities[0].Length:]
-			} else {
-				b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: update.Message.Chat.ID,
-					Text:   "Select the language you want me to translate to:",
-				})
-				chatMode[update.Message.Chat.ID] = "ask_language"
-				return
-			}
+		case strings.HasPrefix(update.Message.Text, "/help"):
 			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "What do you want me to translate?",
+				ParseMode: "Markdown",
+				ChatID:    update.Message.Chat.ID,
+				Text:      help,
 			})
-			chatMode[update.Message.Chat.ID] = "translate"
-			translateLang[update.Message.Chat.ID] = lang
-
 			return
-		}
-
-		if update.Message.Entities[0].Type == "bot_command" &&
-			strings.HasPrefix(update.Message.Text, "/image") {
+		case strings.HasPrefix(update.Message.Text, "/image"):
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
 				Text:   "What do you want me to generate?",
 			})
 			chatMode[update.Message.Chat.ID] = "image"
 			return
-		}
-
-	}
-
-	if chatMode[update.Message.Chat.ID] == "ask_language" {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "What do you want me to translate?",
-		})
-		chatMode[update.Message.Chat.ID] = "translate"
-		translateLang[update.Message.Chat.ID] = update.Message.Text
-		return
-	}
-
-	if chatMode[update.Message.Chat.ID] == "translate" {
-		resp, err := openaiClient.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model: "gpt-3.5-turbo",
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role: "user",
-					Content: fmt.Sprintf(
-						"Translate `%s` to `%s`",
-						update.Message.Text,
-						translateLang[update.Message.Chat.ID],
-					),
-				},
-			},
-		})
-		var msg string
-		if err != nil {
-			log.Default().Println("Error:", err)
-			msg = "I'm sorry, I couldn't translate that. Please try again."
-		} else {
-			msg = resp.Choices[0].Message.Content
-		}
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   msg,
-		})
-		delete(chatMode, update.Message.Chat.ID)
-		delete(translateLang, update.Message.Chat.ID)
-		return
-	}
-
-	if chatMode[update.Message.Chat.ID] == "explain" {
-		resp, err := openaiClient.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model: "gpt-3.5-turbo",
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    "user",
-					Content: "Please explain:\n" + update.Message.Text,
-				},
-			},
-		})
-		var msg string
-		if err != nil {
-			log.Default().Println("Error:", err)
-			msg = "I'm sorry, I couldn't explain that. Please try again."
-		} else {
-			msg = resp.Choices[0].Message.Content
-		}
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   msg,
-		})
-		delete(chatMode, update.Message.Chat.ID)
-		return
-	}
-
-	if chatMode[update.Message.Chat.ID] == "image" {
-		resp, err := openaiClient.CreateImage(ctx, openai.ImageRequest{
-			Prompt: update.Message.Text,
-			N:      1,
-		})
-
-		var msg string
-		if err != nil {
-			log.Default().Println("Error:", err)
-			msg = "I'm sorry, I couldn't explain that. Please try again."
+		default:
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   msg,
+				Text:   "Unknown command. Use /help to get help.",
 			})
+			return
 		}
-
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   resp.Data[0].URL,
-		})
-		delete(chatMode, update.Message.Chat.ID)
-		return
 	}
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   update.Message.Text,
-	})
+
+	// FMS
+	// switch state {
+	// case "START":
+	// 	b.SendMessage(ctx, &bot.SendMessageParams{
+	// 		ChatID: update.Message.Chat.ID,
+	// 		Text:   "Type a number bertweem 1..5",
+	// 	})
+	// 	return
+	// default:
+	// 	state = "START"
+	// }
+
+	// if len(update.Message.Entities) > 0 {
+	// 	number, err := strconv.Atoi(update.Message.Text)
+	// 	if err != nil {
+	// 		log.Println("Error converting to number")
+	// 		return
+	// 	}
+	//
+	// 	if number > 5 {
+	// 		b.SendMessage(ctx, &bot.SendMessageParams{
+	// 			ChatID: update.Message.Chat.ID,
+	// 			Text:   "I told you to type a number bertweem 1..5",
+	// 		})
+	// 		return
+	// 	}
+	// }
+
+	// msg, _ := json.Marshal(update)
+	// log.Default().Println(string(msg))
+	//
+	// if len(update.Message.Entities) > 0 {
+	// 	if update.Message.Entities[0].Type == "bot_command" &&
+	// 		strings.HasPrefix(update.Message.Text, "/explain") {
+	// 		b.SendMessage(ctx, &bot.SendMessageParams{
+	// 			ChatID: update.Message.Chat.ID,
+	// 			Text:   "What do you want me to explain?",
+	// 		})
+	// 		chatMode[update.Message.Chat.ID] = "explain"
+	// 		return
+	// 	}
+	// 	if update.Message.Entities[0].Type == "bot_command" &&
+	// 		strings.HasPrefix(update.Message.Text, "/translate") {
+	// 		lang := ""
+	// 		if len(
+	// 			update.Message.Text,
+	// 		) > update.Message.Entities[0].Offset+update.Message.Entities[0].Length {
+	// 			lang = update.Message.Text[update.Message.Entities[0].Offset+update.Message.Entities[0].Length:]
+	// 		} else {
+	// 			b.SendMessage(ctx, &bot.SendMessageParams{
+	// 				ChatID: update.Message.Chat.ID,
+	// 				Text:   "Select the language you want me to translate to:",
+	// 			})
+	// 			chatMode[update.Message.Chat.ID] = "ask_language"
+	// 			return
+	// 		}
+	// 		b.SendMessage(ctx, &bot.SendMessageParams{
+	// 			ChatID: update.Message.Chat.ID,
+	// 			Text:   "What do you want me to translate?",
+	// 		})
+	// 		chatMode[update.Message.Chat.ID] = "translate"
+	// 		translateLang[update.Message.Chat.ID] = lang
+	//
+	// 		return
+	// 	}
+	//
+	// 	if update.Message.Entities[0].Type == "bot_command" &&
+	// 		strings.HasPrefix(update.Message.Text, "/image") {
+	// 		b.SendMessage(ctx, &bot.SendMessageParams{
+	// 			ChatID: update.Message.Chat.ID,
+	// 			Text:   "What do you want me to generate?",
+	// 		})
+	// 		chatMode[update.Message.Chat.ID] = "image"
+	// 		return
+	// 	}
+	//
+	// }
+	//
+	// if chatMode[update.Message.Chat.ID] == "ask_language" {
+	// 	b.SendMessage(ctx, &bot.SendMessageParams{
+	// 		ChatID: update.Message.Chat.ID,
+	// 		Text:   "What do you want me to translate?",
+	// 	})
+	// 	chatMode[update.Message.Chat.ID] = "translate"
+	// 	translateLang[update.Message.Chat.ID] = update.Message.Text
+	// 	return
+	// }
+	//
+	// if chatMode[update.Message.Chat.ID] == "translate" {
+	// 	resp, err := openaiClient.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	// 		Model: "gpt-3.5-turbo",
+	// 		Messages: []openai.ChatCompletionMessage{
+	// 			{
+	// 				Role: "user",
+	// 				Content: fmt.Sprintf(
+	// 					"Translate `%s` to `%s`",
+	// 					update.Message.Text,
+	// 					translateLang[update.Message.Chat.ID],
+	// 				),
+	// 			},
+	// 		},
+	// 	})
+	// 	var msg string
+	// 	if err != nil {
+	// 		log.Default().Println("Error:", err)
+	// 		msg = "I'm sorry, I couldn't translate that. Please try again."
+	// 	} else {
+	// 		msg = resp.Choices[0].Message.Content
+	// 	}
+	// 	b.SendMessage(ctx, &bot.SendMessageParams{
+	// 		ChatID: update.Message.Chat.ID,
+	// 		Text:   msg,
+	// 	})
+	// 	delete(chatMode, update.Message.Chat.ID)
+	// 	delete(translateLang, update.Message.Chat.ID)
+	// 	return
+	// }
+	//
+	// if chatMode[update.Message.Chat.ID] == "explain" {
+	// 	resp, err := openaiClient.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	// 		Model: "gpt-3.5-turbo",
+	// 		Messages: []openai.ChatCompletionMessage{
+	// 			{
+	// 				Role:    "user",
+	// 				Content: "Please explain:\n" + update.Message.Text,
+	// 			},
+	// 		},
+	// 	})
+	// 	var msg string
+	// 	if err != nil {
+	// 		log.Default().Println("Error:", err)
+	// 		msg = "I'm sorry, I couldn't explain that. Please try again."
+	// 	} else {
+	// 		msg = resp.Choices[0].Message.Content
+	// 	}
+	// 	b.SendMessage(ctx, &bot.SendMessageParams{
+	// 		ChatID: update.Message.Chat.ID,
+	// 		Text:   msg,
+	// 	})
+	// 	delete(chatMode, update.Message.Chat.ID)
+	// 	return
+	// }
+	//
+	// if chatMode[update.Message.Chat.ID] == "image" {
+	// 	resp, err := openaiClient.CreateImage(ctx, openai.ImageRequest{
+	// 		Prompt: update.Message.Text,
+	// 		N:      1,
+	// 	})
+	//
+	// 	var msg string
+	// 	if err != nil {
+	// 		log.Default().Println("Error:", err)
+	// 		msg = "I'm sorry, I couldn't explain that. Please try again."
+	// 		b.SendMessage(ctx, &bot.SendMessageParams{
+	// 			ChatID: update.Message.Chat.ID,
+	// 			Text:   msg,
+	// 		})
+	// 	}
+	//
+	// 	b.SendMessage(ctx, &bot.SendMessageParams{
+	// 		ChatID: update.Message.Chat.ID,
+	// 		Text:   resp.Data[0].URL,
+	// 	})
+	// 	delete(chatMode, update.Message.Chat.ID)
+	// 	return
+	// }
+
+	// b.SendMessage(ctx, &bot.SendMessageParams{
+	// 	ChatID: update.Message.Chat.ID,
+	// 	Text:   update.Message.Text,
+	// })
 }
