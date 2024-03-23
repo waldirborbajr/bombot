@@ -18,10 +18,9 @@ import (
 )
 
 var (
-	db    *database.Database
-	err   error
-	help  string
-	state string
+	db   *database.Database
+	err  error
+	help string
 )
 
 var (
@@ -33,9 +32,6 @@ var (
 func main() {
 	// initialize log config
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// settting initial state
-	state = "START"
 
 	db, err = database.New()
 	if err != nil {
@@ -150,7 +146,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	// Processing commands
+	// Block to check for command
 	switch {
 	case len(update.Message.Entities) > 0:
 		log.Printf("ENTITY: %v", update.Message.Entities[0].Type)
@@ -193,9 +189,8 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		}
 	}
 
-	// FMS
+	// Block to check for the Finite State Machine
 	log.Println(" CHAT MODE: ", chatMode[update.Message.Chat.ID])
-
 	switch chatMode[update.Message.Chat.ID] {
 	case "start":
 		number, err := strconv.Atoi(update.Message.Text)
@@ -249,7 +244,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		if number == 3 {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   "You Win 🏆",
+				Text:   "🎉 You Win 🏆",
 			})
 			chatMode[update.Message.Chat.ID] = "fini"
 			return
@@ -262,27 +257,6 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 			return
 		}
 	}
-
-	// switch state {
-	// case "START":
-	// 	if len(update.Message.Entities) > 0 {
-	// 		number, err := strconv.Atoi(update.Message.Text)
-	// 		if err != nil {
-	// 			log.Println("Error converting to number")
-	// 			return
-	// 		}
-	//
-	// 		if number > 5 {
-	// 			b.SendMessage(ctx, &bot.SendMessageParams{
-	// 				ChatID: update.Message.Chat.ID,
-	// 				Text:   "I told you to type a number bertweem 1..5",
-	// 			})
-	// 			return
-	// 		}
-	// 	}
-	// default:
-	// 	state = "START"
-	// }
 
 	// msg, _ := json.Marshal(update)
 	// log.Default().Println(string(msg))
