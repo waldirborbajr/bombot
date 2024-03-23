@@ -8,9 +8,11 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/rs/zerolog"
 	"github.com/waldirborbajr/bombot/internal/config"
 	"github.com/waldirborbajr/bombot/internal/database"
 
@@ -18,9 +20,16 @@ import (
 )
 
 var (
-	db   *database.Database
-	err  error
-	help string
+	db     *database.Database
+	err    error
+	help   string
+	logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Caller().
+		Int("pid", os.Getpid()).
+		Logger()
 )
 
 var (
@@ -30,20 +39,17 @@ var (
 )
 
 func main() {
-	// initialize log config
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	db, err = database.New()
 	if err != nil {
-		log.Fatalf("Error creating database: %v", err)
+		logger.Error().Msgf("Error creating database: %v", err)
 	}
 
 	helpAux, err := os.ReadFile("help.md")
 	if err != nil {
 		if !os.IsNotExist(err) {
-			log.Fatalf("Error reading help.md: %v", err)
+			logger.Error().Msgf("Error reading help.md: %v", err)
 		}
-		log.Println("help.md not found")
+		logger.Error().Msgf("help.md not found: %v", err)
 	}
 	help = string(helpAux)
 
@@ -65,18 +71,18 @@ func main() {
 
 	telegramBotToken := config.BotToken
 	if telegramBotToken == "" {
-		log.Println("TELEGRAM_BOT_TOKEN environment variable is not set")
+		logger.Error().Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
 		return
 	}
 
 	b, err := bot.New(telegramBotToken, opts...)
 	if nil != err {
-		log.Fatalf("Error creating bot: %v", err)
+		logger.Error().Msgf("Error creating bot: %v", err)
 	}
 
 	webHookUrl := config.BotUrl
 	if webHookUrl == "" {
-		log.Println("webHook URL environment variable is not set")
+		logger.Error().Msgf("webHook URL environment variable is not set: %v", err)
 		return
 	}
 
@@ -84,7 +90,7 @@ func main() {
 		URL: webHookUrl,
 	})
 	if err != nil {
-		log.Printf("Error on SetWebhook: %v", err)
+		logger.Error().Msgf("Error on SetWebhook: %v", err)
 		return
 	}
 
@@ -92,11 +98,41 @@ func main() {
 
 	go b.StartWebhook(ctx)
 
+	menuCommands(ctx, b)
+
+	go func() {
+		err = http.ListenAndServe(":2000", b.WebhookHandler())
+		if err != nil {
+			logger.Error().Msgf("Error Listening server: %v", err)
+		}
+	}()
+
+	// call methods.DeleteWebhook if needed
+	defer func() {
+		_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
+		if err != nil {
+			logger.Error().Msgf("Error on DeleteWebhook: %v", err)
+			return
+		}
+	}()
+
+	// <-ctx.Done()
+	select {
+	case <-ctx.Done():
+		logger.Info().Msg("BomBot is shutting down...")
+	}
+}
+
+func menuCommands(ctx context.Context, b *bot.Bot) {
 	b.SetMyCommands(ctx, &bot.SetMyCommandsParams{
 		Commands: []models.BotCommand{
 			{
 				Command:     "start",
 				Description: "Explain the following text",
+			},
+			{
+				Command:     "joke",
+				Description: "Tell me a joke",
 			},
 			{
 				Command:     "help",
@@ -116,26 +152,6 @@ func main() {
 			},
 		},
 	})
-
-	go func() {
-		err = http.ListenAndServe(":2000", b.WebhookHandler())
-		if err != nil {
-			log.Fatalf("Error Listening server: %v", err)
-		}
-	}()
-
-	<-ctx.Done()
-
-	log.Println("BomBot started")
-
-	// call methods.DeleteWebhook if needed
-	defer func() {
-		_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
-		if err != nil {
-			log.Printf("Error on DeleteWebhook: %v", err)
-			return
-		}
-	}()
 }
 
 // handler is a default handler that simply sends a message to the chat.
@@ -149,8 +165,6 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	// Block to check for command
 	switch {
 	case len(update.Message.Entities) > 0:
-		log.Printf("ENTITY: %v", update.Message.Entities[0].Type)
-		log.Printf("ENTITY LEN: %v", len(update.Message.Entities))
 		switch update.Message.Entities[0].Type == "bot_command" {
 		case strings.HasPrefix(update.Message.Text, "/start"):
 			b.SendMessage(ctx, &bot.SendMessageParams{
@@ -195,7 +209,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	case "start":
 		number, err := strconv.Atoi(update.Message.Text)
 		if err != nil {
-			log.Println("Error converting to number")
+			logger.Error().Msgf("Error converting to number: %v", err)
 			return
 		}
 
@@ -237,7 +251,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	case "level2":
 		number, err := strconv.Atoi(update.Message.Text)
 		if err != nil {
-			log.Println("Error converting to number")
+			logger.Error().Msgf("Error converting to number: %v", err)
 			return
 		}
 
