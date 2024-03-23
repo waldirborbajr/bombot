@@ -142,13 +142,24 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.ChannelPost == nil {
 		return
 	}
+	log.Printf(
+		"[default_handler] got message from channel: %d %s",
+		update.ChannelPost.ID,
+		update.ChannelPost.Text,
+	)
 
 	// Block to check for command
-	switch {
-	case update.ChannelPost.Text == "/id":
+	switch update.ChannelPost.Text {
+	case "/id":
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.ChannelPost.Chat.ID,
 			Text:   fmt.Sprintf("%d", update.ChannelPost.Chat.ID),
+		})
+		return
+	case "/help":
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.ChannelPost.Chat.ID,
+			Text:   help,
 		})
 		return
 	}
