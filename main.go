@@ -97,7 +97,9 @@ func main() {
 
 	switch BOT_FLAG {
 	case "fms":
-		fms.MenuCommands(ctx, b)
+		fms.MenuCommandsFMS(ctx, b)
+	case "channel":
+		fms.MenuCommandsChannel(ctx, b)
 	}
 
 	go func() {
