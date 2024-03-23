@@ -8,7 +8,7 @@ tmux -u new-session -d -s $SESSION_NAME
 #This script requires autojump to be installed and alias added as 'j'
 
 # Create windows with specified names and execute commands in each window
-tmux -u new-window -t $SESSION_NAME:1 -n "hot"
+tmux -u new-window -t $SESSION_NAME:1 -n "nvim"
 tmux send-keys -t $SESSION_NAME:1 'nvim' C-m
 
 tmux -u new-window -t $SESSION_NAME:2 -n "ngrok"
