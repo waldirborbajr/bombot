@@ -5,28 +5,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/go-telegram/bot"
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/waldirborbajr/bombot/internal/botlog"
 	"github.com/waldirborbajr/bombot/internal/config"
 	"github.com/waldirborbajr/bombot/internal/database"
 	"github.com/waldirborbajr/bombot/internal/fms"
+	"github.com/waldirborbajr/bombot/internal/handlers"
 
 	openai "github.com/sashabaranov/go-openai"
 )
 
 var (
-	db  *database.Database
-	err error
-	// help   string
-	logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Caller().
-		Int("pid", os.Getpid()).
-		Logger()
+	db       *database.Database
+	err      error
+	BOT_FLAG string
+	logger   = botlog.BotLog()
 )
 
 var (
@@ -36,6 +31,10 @@ var (
 )
 
 func main() {
+	BOT_FLAG = config.BOT_FLAG
+
+	log.Info().Msg(BOT_FLAG)
+
 	db, err = database.New()
 	if err != nil {
 		logger.Error().Msgf("Error creating database: %v", err)
@@ -52,9 +51,19 @@ func main() {
 	// OpenAI
 	openaiClient = openai.NewClient(os.Getenv("OPENAI_KEY"))
 
-	opts := []bot.Option{
-		bot.WithDefaultHandler(fms.Handler),
-		bot.WithDebug(),
+	opts := []bot.Option{}
+
+	switch BOT_FLAG {
+	case "fms":
+		opts = []bot.Option{
+			bot.WithDefaultHandler(handlers.HandlerFMS),
+			bot.WithDebug(),
+		}
+	case "channel":
+		opts = []bot.Option{
+			bot.WithDefaultHandler(handlers.HandlerChannel),
+			bot.WithDebug(),
+		}
 	}
 
 	telegramBotToken := config.BotToken
@@ -86,7 +95,10 @@ func main() {
 
 	go b.StartWebhook(ctx)
 
-	fms.MenuCommands(ctx, b)
+	switch BOT_FLAG {
+	case "fms":
+		fms.MenuCommands(ctx, b)
+	}
 
 	go func() {
 		err = http.ListenAndServe(":2000", b.WebhookHandler())
