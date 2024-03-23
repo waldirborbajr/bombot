@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +13,8 @@ import (
 	"github.com/waldirborbajr/bombot/internal/database"
 
 	openai "github.com/sashabaranov/go-openai"
+
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -29,20 +30,23 @@ var (
 )
 
 func main() {
-	// initialize log config
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	logger := zerolog.New(os.Stdout).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Logger()
 
 	db, err = database.New()
 	if err != nil {
-		log.Fatalf("Error creating database: %v", err)
+		logger.WithLevel(zerolog.FatalLevel).Msg("Error creating database:")
 	}
 
 	helpAux, err := os.ReadFile("help.md")
 	if err != nil {
 		if !os.IsNotExist(err) {
-			log.Fatalf("Error reading help.md: %v", err)
+			logger.WithLevel(zerolog.FatalLevel).Msg("Error reading help.md: ")
 		}
-		log.Println("help.md not found")
+		logger.WithLevel(zerolog.FatalLevel).Msg("help.md not found")
 	}
 	help = string(helpAux)
 
@@ -64,18 +68,21 @@ func main() {
 
 	telegramBotToken := config.BotToken
 	if telegramBotToken == "" {
-		log.Println("TELEGRAM_BOT_TOKEN environment variable is not set")
+		logger.WithLevel(zerolog.FatalLevel).
+			Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
 		return
 	}
 
 	b, err := bot.New(telegramBotToken, opts...)
 	if nil != err {
-		log.Fatalf("Error creating bot: %v", err)
+		logger.WithLevel(zerolog.FatalLevel).
+			Msg("Error creating bot: ")
 	}
 
 	webHookUrl := config.BotUrl
 	if webHookUrl == "" {
-		log.Println("webHook URL environment variable is not set")
+		logger.WithLevel(zerolog.FatalLevel).
+			Msg("webHook URL environment variable is not set")
 		return
 	}
 
@@ -83,7 +90,8 @@ func main() {
 		URL: webHookUrl,
 	})
 	if err != nil {
-		log.Printf("Error on SetWebhook: %v", err)
+		logger.WithLevel(zerolog.FatalLevel).
+			Msg("Error on SetWebhook: ")
 		return
 	}
 
@@ -91,50 +99,32 @@ func main() {
 
 	go b.StartWebhook(ctx)
 
-	b.SetMyCommands(ctx, &bot.SetMyCommandsParams{
-		Commands: []models.BotCommand{
-			{
-				Command:     "start",
-				Description: "Explain the following text",
-			},
-			{
-				Command:     "help",
-				Description: "Cry for help",
-			},
-			{
-				Command:     "explain",
-				Description: "Explain the following text",
-			},
-			{
-				Command:     "translate",
-				Description: "Translate from any language to any other language",
-			},
-			{
-				Command:     "image",
-				Description: "Generate an image from text",
-			},
-		},
-	})
-
 	go func() {
 		err = http.ListenAndServe(":2000", b.WebhookHandler())
 		if err != nil {
-			log.Fatalf("Error Listening server: %v", err)
+			logger.WithLevel(zerolog.FatalLevel).
+				Msg("Error Listening server: ")
 		}
 	}()
 
-	<-ctx.Done()
-
-	log.Println("BomBot started")
+	logger.Info().Msg("BomBot started")
 
 	// call methods.DeleteWebhook if needed
 	defer func() {
 		_, err = b.DeleteWebhook(ctx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
 		if err != nil {
-			log.Printf("Error on DeleteWebhook: %v", err)
+			logger.WithLevel(zerolog.FatalLevel).
+				Msg("Error on DeleteWebhook: ")
 			return
 		}
 	}()
+
+	// <-ctx.Done()
+	select {
+	case <-ctx.Done():
+		logger.WithLevel(zerolog.FatalLevel).
+			Msg("BomBot is shutting down...")
+	}
 }
 
 // handler is a default handler that simply sends a message to the chat.
@@ -142,11 +132,11 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.ChannelPost == nil {
 		return
 	}
-	log.Printf(
-		"[default_handler] got message from channel: %d %s",
-		update.ChannelPost.ID,
-		update.ChannelPost.Text,
-	)
+	// log.Printf(
+	// 	"[default_handler] got message from channel: %d %s",
+	// 	update.ChannelPost.ID,
+	// 	update.ChannelPost.Text,
+	// )
 
 	// Block to check for command
 	switch update.ChannelPost.Text {
