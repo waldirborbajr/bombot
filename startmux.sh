@@ -9,7 +9,7 @@ tmux -u new-session -d -s $SESSION_NAME
 
 # Create windows with specified names and execute commands in each window
 tmux -u new-window -t $SESSION_NAME:1 -n "hot"
-tmux send-keys -t $SESSION_NAME:1 'nvim main.go' C-m
+tmux send-keys -t $SESSION_NAME:1 'nvim' C-m
 
 tmux -u new-window -t $SESSION_NAME:2 -n "ngrok"
 tmux send-keys -t $SESSION_NAME:2 'ngrok http 2000' C-m
