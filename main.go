@@ -65,6 +65,22 @@ func main() {
 	case "group":
 		opts = []bot.Option{
 			bot.WithDefaultHandler(handlers.HandlerGroup),
+			bot.WithCallbackQueryDataHandler(
+				"magnet",
+				bot.MatchTypePrefix,
+				handlers.MagnetCallbackHandler,
+			),
+			bot.WithCallbackQueryDataHandler(
+				"nyaa",
+				bot.MatchTypePrefix,
+				handlers.SearchCallbackHandler,
+			),
+			bot.WithCallbackQueryDataHandler(
+				"sukebei",
+				bot.MatchTypePrefix,
+				handlers.SearchCallbackHandler,
+			),
+			// bot.WithCallbackQueryDataHandler("addToGroup", bot.MatchType, handler bot.HandlerFunc)
 			bot.WithDebug(),
 		}
 	}
@@ -104,7 +120,37 @@ func main() {
 	case "channel":
 		menu.MenuCommandsChannel(ctx, b)
 	case "group":
-		menu.MenuCommandsGroup(ctx, b)
+		// menu.MenuCommandsGroup(ctx, b)
+		b.RegisterHandler(
+			bot.HandlerTypeMessageText,
+			"/start",
+			bot.MatchTypeExact,
+			handlers.StartHandler,
+		)
+		b.RegisterHandler(
+			bot.HandlerTypeMessageText,
+			"/help",
+			bot.MatchTypeExact,
+			handlers.HelpHandler,
+		)
+		b.RegisterHandler(
+			bot.HandlerTypeMessageText,
+			"/magnet",
+			bot.MatchTypePrefix,
+			handlers.MagnetHandler,
+		)
+		b.RegisterHandler(
+			bot.HandlerTypeMessageText,
+			"/nyaa",
+			bot.MatchTypePrefix,
+			handlers.SearchHandler,
+		)
+		b.RegisterHandler(
+			bot.HandlerTypeMessageText,
+			"/sukebei",
+			bot.MatchTypePrefix,
+			handlers.SearchHandler,
+		)
 	}
 
 	go func() {
