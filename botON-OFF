@@ -5,7 +5,7 @@ if [ $1 = "on" ]; then
   # curl -X POST https://api.telegram.org/bot7161499158:AAE3lf6sy_ViwlBJ_Axuw8i2cYssAwFbBIY/setWebhook?${ADDR}
   # curl -F "url=https://"${ADDR} https://api.telegram.org/bot7161499158:AAE3lf6sy_ViwlBJ_Axuw8i2cYssAwFbBIY/setWebhook
 
-  echo "BOT_URL=https://"${ADDR} >.boturl
+  echo "export BOT_URL=https://"${ADDR} >.boturl
   echo ""
   echo "Bot Webhook Set @ ${ADDR}"
 else
