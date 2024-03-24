@@ -18,7 +18,7 @@ tmux -u new-window -t $SESSION_NAME:3 -n "start bot"
 tmux send-keys -t $SESSION_NAME:3 'sleep 2 && ./botON-OFF on' C-m
 
 tmux -u new-window -t $SESSION_NAME:4 -n "Makefile run"
-tmux send-keys -t $SESSION_NAME:4 'sleep 5 && make run' C-m
+tmux send-keys -t $SESSION_NAME:4 'sleep 5 && make air' C-m
 
 tmux -u new-window -t $SESSION_NAME:5 -n "Lazygit"
 tmux send-keys -t $SESSION_NAME:5 'lazygit' C-m

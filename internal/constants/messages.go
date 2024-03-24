@@ -2,17 +2,21 @@ package constants
 
 import "github.com/go-telegram/bot"
 
-// This file contains all the text messages used. Only reason for having this in separate file is these can't be declared as consts and looks really awful.
-// I found this workaround as passing the complete as string doesn't work, I don't know if that was intentional or not.
-// Gotta find a cleaner way to do this.
+// This file contains all the text messages used. Only reason for having this in
+// separate file is these can't be declared as consts and looks really awful.
+// I found this workaround as passing the complete as string doesn't work,
+// I don't know if that was intentional or not. Gotta find a cleaner way to do this.
 
 // Default message for any unrecognized command.
-var DefaultMessage = "Sorry, I didn't understand that command. Please make sure you've entered a valid instruction, or type /help for assistance."
+var DefaultMessage = "Sorry, I didn't understand that command. " +
+	"Please make sure you've entered a valid instruction, or type /help for assistance."
 
 // Messages used with start command.
-var StartMessage = bot.EscapeMarkdown("Hello!\n") +
-	"I can fetch torrents from [Nyaa](https://nyaa.si/) and [Sukebei](https://sukebei.nyaa.si/)" +
-	bot.EscapeMarkdown(".\nType /help for more info.")
+var StartMessage = bot.EscapeMarkdown("Hello! My name is BomBot - I'm here to help") +
+	bot.EscapeMarkdown(
+		" you manage your groups! Hit /help to find out more about how to use me to my full potential.\n\n",
+	) +
+	bot.EscapeMarkdown("Remember type at any moment /help for more info.")
 
 // Messages used with help command.
 var HelpMessage = "*Note:* " +

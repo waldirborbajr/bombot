@@ -12,8 +12,6 @@ import (
 	"github.com/waldirborbajr/bombot/internal/database"
 	"github.com/waldirborbajr/bombot/internal/handlers"
 	"github.com/waldirborbajr/bombot/internal/menu"
-
-	openai "github.com/sashabaranov/go-openai"
 )
 
 var (
@@ -22,11 +20,8 @@ var (
 	BOT_FLAG string
 )
 
-var (
-	// chatMode      map[int64]string = make(map[int64]string)
-	translateLang map[int64]string = make(map[int64]string)
-	openaiClient  *openai.Client
-)
+// chatMode      map[int64]string = make(map[int64]string)
+var translateLang map[int64]string = make(map[int64]string)
 
 func main() {
 	BOT_FLAG = config.BOT_FLAG
@@ -46,9 +41,6 @@ func main() {
 
 	defer cancel()
 
-	// OpenAI
-	openaiClient = openai.NewClient(os.Getenv("OPENAI_KEY"))
-
 	opts := []bot.Option{}
 
 	switch BOT_FLAG {
@@ -64,7 +56,8 @@ func main() {
 		}
 	case "group":
 		opts = []bot.Option{
-			bot.WithDefaultHandler(handlers.HandlerGroup),
+			bot.WithDefaultHandler(handlers.DefaultHandler),
+
 			bot.WithCallbackQueryDataHandler(
 				"magnet",
 				bot.MatchTypePrefix,
@@ -120,7 +113,6 @@ func main() {
 	case "channel":
 		menu.MenuCommandsChannel(ctx, b)
 	case "group":
-		// menu.MenuCommandsGroup(ctx, b)
 		b.RegisterHandler(
 			bot.HandlerTypeMessageText,
 			"/start",

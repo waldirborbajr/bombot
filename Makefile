@@ -20,6 +20,9 @@ build: ## 🔨 Build development binaries for Linux
 run: ## 󰜎 Build development binaries for Linux
 	 go run main.go
 
+air:
+	air --build.cmd "go run main.go"
+
 clean: ## ♻️  Clean up
 	@rm -rf bin
 	@rm $(GOBIN)/$(ARTIFACT_NAME)
