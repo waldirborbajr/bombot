@@ -59,6 +59,12 @@ func main() {
 			bot.WithDefaultHandler(handlers.DefaultHandler),
 
 			bot.WithCallbackQueryDataHandler(
+				"button",
+				bot.MatchTypePrefix,
+				handlers.CallbackButtonMenuHandler,
+			),
+
+			bot.WithCallbackQueryDataHandler(
 				"magnet",
 				bot.MatchTypePrefix,
 				handlers.MagnetCallbackHandler,

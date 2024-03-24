@@ -4,9 +4,9 @@ tmp_dir = "tmp"
 
 [build]
 args_bin = []
-bin = "./bin/bombot"
-# cmd = "go build -o ./bin/bombot ."
+# cmd = "go fmt && go vet && go build -o ./bin/bombot"
 cmd = "go run ./..."
+bin = "./bin/bombot"
 delay = 1000
 exclude_dir = ["assets", "tmp", "vendor", "testdata"]
 exclude_file = []
