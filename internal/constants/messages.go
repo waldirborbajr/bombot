@@ -12,11 +12,12 @@ var DefaultMessage = "Sorry, I didn't understand that command. " +
 	"Please make sure you've entered a valid instruction, or type /help for assistance."
 
 // Messages used with start command.
-var StartMessage = bot.EscapeMarkdown("Hello! My name is BomBot - I'm here to help") +
-	bot.EscapeMarkdown(
-		" you manage your groups! Hit /help to find out more about how to use me to my full potential.\n\n",
-	) +
-	bot.EscapeMarkdown("Remember type at any moment /help for more info.")
+var StartMessage = bot.EscapeMarkdown(
+	"Hello! My name is BomBot - I'm here to help you manage " +
+		"your groups! Hit /help to find out more about how " +
+		"to use me to my full potential.\n\n" +
+		"Remember type at any moment /help for more info.",
+)
 
 // Messages used with help command.
 var HelpMessage = "*Note:* " +
