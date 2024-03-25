@@ -1,6 +1,6 @@
 include .env
 include .boturl
-export
+# export
 
 ARTIFACT_NAME=bombot
 
@@ -18,7 +18,10 @@ build: ## 🔨 Build development binaries for Linux
 	GOOS=linux go build -o bin/$(ARTIFACT_NAME) $(LDFLAGS) $(GCFLAGS) -debug-trace=tmp/trace.json main.go
 
 run: ## 󰜎 Build development binaries for Linux
-	 go run cmd/fmsbot/main.go
+	 go run main.go
+
+air:
+	air go run main.go
 
 clean: ## ♻️  Clean up
 	@rm -rf bin

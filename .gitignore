@@ -1,4 +1,5 @@
 .env
 .boturl
 bombot.db
-tmp/build-errors.log
+tmp
+bin

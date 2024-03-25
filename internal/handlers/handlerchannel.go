@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/waldirborbajr/bombot/internal/botlog"
+	"github.com/rs/zerolog/log"
 )
 
 func help() string {
@@ -15,12 +15,12 @@ func help() string {
 		"\n - Ban Permissions: To ban the channels",
 		"\n - Delete Message Permissions: To delete the messages sent by channel",
 
-		"\n\n<b>Some Tips:</b>",
+		"\n\n***Some Tips:***",
 		"\n1. To ignore a channel use /ignore by replying a message from that channel or you can pass a channel id. for more help type /ignore.",
 		"\n2. To unignore a channel use /unignore by replying a message from that channel or you can pass a channel id. for more help type /unignore.",
 		"\n3. To get the list of all ignored channel use /ignorelist.",
 
-		"\n\n<b>Available Commands:</b>",
+		"\n\n***Available Commands:***",
 		"\n/start - ✨ display start message.",
 		"\n/ignore - ✅ unban and allow that user to sending message as channel (admin only).",
 		"\n/ignorelist - 📋 get list ignored channel.",
@@ -31,9 +31,7 @@ func help() string {
 
 // handler is a default handler that simply sends a message to the chat.
 func HandlerChannel(ctx context.Context, b *bot.Bot, update *models.Update) {
-	logger := botlog.BotLog()
-
-	logger.Info().Msg("HandlerChannel")
+	log.Info().Msg("HandlerChannel")
 
 	if update.ChannelPost == nil {
 		return
@@ -44,13 +42,21 @@ func HandlerChannel(ctx context.Context, b *bot.Bot, update *models.Update) {
 	case "/id":
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.ChannelPost.Chat.ID,
-			Text:   fmt.Sprintf("%d", update.ChannelPost.Chat.ID),
+			Text:   fmt.Sprintf("This channel id is: %d", update.ChannelPost.Chat.ID),
+		})
+		return
+	case "/ignore":
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ParseMode: "Markdown",
+			ChatID:    update.ChannelPost.Chat.ID,
+			Text:      help(),
 		})
 		return
 	case "/help":
 		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.ChannelPost.Chat.ID,
-			Text:   help(),
+			ParseMode: "Markdown",
+			ChatID:    update.ChannelPost.Chat.ID,
+			Text:      help(),
 		})
 		return
 	}
