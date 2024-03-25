@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="256" height="256" src="./assets/bombot-log.png" />
+  <img width="256" height="256" src="./assets/bombot-logo.png" />
 </p>
 
 <h1 align="center">bombot - GOLang Telegram Bot - Just for fun</h1>
