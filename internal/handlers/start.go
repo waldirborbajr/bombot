@@ -11,16 +11,16 @@ import (
 
 func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	// botName := update.Message.Chat.Username
+	// botName := "NoCoderaBot" + update.Message.From.Username
 	botName := "NoCoderaBot"
-
 	log.Info().Msg(botName)
 
 	keyb := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
 				{
-					Text: "Add me to your chat!",
-					URL:  "https://t.me/" + botName + "?startgroup=None",
+					Text: "Add me to your chat! ➕",
+					URL:  "https://t.me/" + botName + "?startgroup=start",
 				},
 			},
 		},
