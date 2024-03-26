@@ -86,7 +86,7 @@ func main() {
 
 	telegramBotToken := config.BotToken
 	if telegramBotToken == "" {
-		log.Error().Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
+		log.Fatal().Msg("TELEGRAM_BOT_TOKEN environment variable is not set")
 		return
 	}
 
@@ -97,7 +97,7 @@ func main() {
 
 	webHookUrl := config.BotUrl
 	if webHookUrl == "" {
-		log.Error().Msgf("webHook URL environment variable is not set: %v", err)
+		log.Fatal().Msg("webHook URL environment variable is not set")
 		return
 	}
 
@@ -105,7 +105,7 @@ func main() {
 		URL: webHookUrl,
 	})
 	if err != nil {
-		log.Error().Msgf("Error on SetWebhook: %v", err)
+		log.Fatal().Msgf("Error on SetWebhook: %v", err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func main() {
 	go func() {
 		err = http.ListenAndServe(":2000", b.WebhookHandler())
 		if err != nil {
-			log.Error().Msgf("Error Listening server: %v", err)
+			log.Fatal().Msgf("Error Listening server: %v", err)
 		}
 	}()
 
