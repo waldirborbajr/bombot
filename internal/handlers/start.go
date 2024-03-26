@@ -25,26 +25,14 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 			},
 		},
 	}
-	// keyb := &models.InlineKeyboardMarkup{
-	// 	InlineKeyboard: [][]models.InlineKeyboardButton{
-	// 		{
-	// 			{Text: "Add me to your chat!", CallbackData: "button add"},
-	// 		},
-	// 	},
-	// }
-
-	// switch update.CallbackQuery.Data {
-	// case "add to chat":
-	// 	log.Info().Msg("add to chat")
-	// }
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.Chat.ID,
 		Text:        constants.StartMessage,
 		ParseMode:   models.ParseModeMarkdown,
 		ReplyMarkup: keyb,
-		LinkPreviewOptions: &models.LinkPreviewOptions{
-			IsDisabled: bot.True(),
-		},
+		// LinkPreviewOptions: &models.LinkPreviewOptions{
+		// 	IsDisabled: bot.True(),
+		// },
 	})
 }
